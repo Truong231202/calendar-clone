@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Notion Calendar Clone
 
-## Getting Started
+A high-fidelity, pixel-perfect clone of the **Notion Calendar** web application. Built with Next.js and Tailwind CSS, this project aims to replicate the core UI/UX of the original app, featuring dynamic calendars, responsive sidebars, smooth animations, and functional navigation.
 
-First, run the development server:
+## 🚀 Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Pixel-Perfect UI:** Exact matching of Notion Calendar's layout, spacing, typography, colors, and shadows.
+- **Dynamic Main Calendar:** 
+  - Real-time "current time" red line indicator.
+  - Interactive grid with day and time slots.
+  - Functional navigation (Previous Week, Next Week, Today).
+- **Interactive Mini Calendar:**
+  - 6-week dynamic grid that syncs perfectly with the Main Calendar.
+  - Highlights the current day and the active selected week.
+- **Responsive Sidebars:**
+  - Collapsible Left and Right sidebars with smooth CSS transitions.
+  - Animated toggle buttons that move seamlessly between the header and sidebar.
+- **Modals & Popovers:**
+  - **"Add Tasks Database" Modal:** Intricate UI featuring a floating inset preview image over a blue background container with dark mode/light mode design principles.
+  - **Timezone Picker:** Fully styled dark-mode dropdown for selecting timezones.
+- **Component-Driven Architecture:** Clean, modular React code using modern Next.js patterns.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🛠 Tech Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Framework:** Next.js (React)
+- **Styling:** Tailwind CSS (Utility-first CSS framework)
+- **Icons:** Lucide React
+- **Language:** TypeScript
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📦 Getting Started
 
-## Learn More
+### Prerequisites
+Make sure you have [Node.js](https://nodejs.org/) installed on your machine.
 
-To learn more about Next.js, take a look at the following resources:
+### Installation
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+2. Navigate into the project directory:
+   ```bash
+   cd Calendar
+   ```
 
-## Deploy on Vercel
+3. Install the dependencies:
+   ```bash
+   npm install
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+4. Start the development server:
+   ```bash
+   npm run dev
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+5. Open your browser and visit `http://localhost:3000` to see the application running.
+
+## 🎨 Design Philosophy
+
+This project strictly adheres to the "Component-First" and "Inspect-before-coding" architecture. Every component (Navbar, Grid, Sidebars) is meticulously inspected from the original Notion Calendar to ensure 100% parity in interactions, hover states, and responsive stacking. Tailwind CSS utility classes are used to map exact pixel values into the layout without sacrificing maintainability.
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome! Feel free to check the issues page.
+
+---
+*Disclaimer: This is a UI clone created for educational and portfolio purposes. It is not affiliated with, endorsed by, or sponsored by Notion.*
