@@ -23,6 +23,7 @@ const timezones = [
 export function MainCalendar({ 
   baseDate, 
   setBaseDate, 
+  selectedDate,
   isRightSidebarOpen = true, 
   onOpenRightSidebar, 
   isLeftSidebarOpen = true, 
@@ -30,10 +31,12 @@ export function MainCalendar({
   isRecurringMode = false,
   events = [],
   setEvents,
-  onEventClick
+  onEventClick,
+  onCreateEventClick
 }: { 
   baseDate: Date, 
   setBaseDate: (date: Date) => void,
+  selectedDate?: Date | null,
   isRightSidebarOpen?: boolean, 
   onOpenRightSidebar?: () => void, 
   isLeftSidebarOpen?: boolean, 
@@ -41,9 +44,20 @@ export function MainCalendar({
   isRecurringMode?: boolean,
   events?: any[],
   setEvents?: (events: any[]) => void,
-  onEventClick?: (event: any) => void
+  onEventClick?: (event: any, coords: { x: number, y: number }) => void,
+  onCreateEventClick?: (date: string, startTime: string, coords: { x: number, y: number }) => void
 }) {
   const [isWeekDropdownOpen, setIsWeekDropdownOpen] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number, y: number, date: string, startTime: string } | null>(null);
+  const [visibleDays, setVisibleDays] = useState(7);
+  const [isDaysMenuOpen, setIsDaysMenuOpen] = useState(false);
+  const [isTimezoneContextMenuOpen, setIsTimezoneContextMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleClick = () => setContextMenu(null);
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, []);
   const [isTimezonePickerOpen, setIsTimezonePickerOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [mounted, setMounted] = useState(false);
@@ -65,7 +79,7 @@ export function MainCalendar({
   const startOfWeek = new Date(baseDate);
   startOfWeek.setDate(baseDate.getDate() - baseDate.getDay());
 
-  const days = Array.from({ length: 7 }, (_, i) => {
+  const days = Array.from({ length: visibleDays }, (_, i) => {
     const d = new Date(startOfWeek);
     d.setDate(startOfWeek.getDate() + i);
     return {
@@ -81,13 +95,13 @@ export function MainCalendar({
 
   const handlePrevWeek = () => {
     const newDate = new Date(baseDate);
-    newDate.setDate(baseDate.getDate() - 7);
+    newDate.setDate(baseDate.getDate() - visibleDays);
     setBaseDate(newDate);
   };
 
   const handleNextWeek = () => {
     const newDate = new Date(baseDate);
-    newDate.setDate(baseDate.getDate() + 7);
+    newDate.setDate(baseDate.getDate() + visibleDays);
     setBaseDate(newDate);
   };
 
@@ -269,7 +283,7 @@ export function MainCalendar({
         <div className="flex-none flex flex-col border-b border-neutral-200 z-30 bg-white">
 
           {/* Row 1: Days of Week + GMT */}
-          <div className="flex h-[32px] border-b border-neutral-200">
+          <div className="flex h-[32px] border-b border-neutral-200 relative">
             {/* Top Left Corner (GMT+7) */}
             <div className="w-[72px] shrink-0 h-full">
               <div className="flex items-center justify-between w-full h-full pl-1 pr-2">
@@ -318,8 +332,61 @@ export function MainCalendar({
                 </div>
 
                 {/* GMT+7 Label */}
-                <div data-context-menu="true" data-timezone-column="Asia/Bangkok" className="flex items-center">
-                  <label className="text-[10px] font-medium text-neutral-500 cursor-pointer hover:text-neutral-700 transition-colors">GMT+7</label>
+                <div className="relative">
+                  <div 
+                    data-context-menu="true" 
+                    data-timezone-column="Asia/Bangkok" 
+                    className={`flex items-center px-1.5 py-0.5 rounded cursor-pointer transition-colors group ${isTimezoneContextMenuOpen ? 'bg-neutral-200' : 'hover:bg-neutral-100'}`}
+                    onClick={() => setIsTimezoneContextMenuOpen(!isTimezoneContextMenuOpen)}
+                  >
+                    <span className="text-[10px] font-medium text-neutral-500 group-hover:text-neutral-700 transition-colors">GMT+7</span>
+                  </div>
+                  
+                  {isTimezoneContextMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setIsTimezoneContextMenuOpen(false)}></div>
+                      <div className="absolute top-[100%] left-0 mt-1 w-[260px] bg-[#282828] text-[#EEEEEE] rounded-[8px] shadow-[0_12px_40px_rgba(0,0,0,0.3)] z-50 flex flex-col py-1.5 border border-[#3A3A3A] font-sans">
+                        <button 
+                          className="flex items-center justify-between w-full text-left px-3 py-1.5 hover:bg-[#3B3B3B] transition-colors group"
+                          onClick={() => {
+                            setIsTimezoneContextMenuOpen(false);
+                            setIsTimezonePickerOpen(true);
+                          }}
+                        >
+                          <div className="flex items-center">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-[14px] h-[14px] mr-3 text-[#A0A0A0] group-hover:text-[#EEEEEE] transition-colors">
+                              <circle cx="12" cy="12" r="10"></circle>
+                              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                              <path d="M2 12h20"></path>
+                            </svg>
+                            <span className="text-[13px] font-medium text-[#EEEEEE]">Change time zone</span>
+                          </div>
+                          <span className="text-[13px] text-[#888888] font-medium">Bangkok</span>
+                        </button>
+                        
+                        <button className="flex items-center justify-between w-full text-left px-3 py-1.5 hover:bg-[#3B3B3B] transition-colors group">
+                          <div className="flex items-center">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-[14px] h-[14px] mr-3 text-[#A0A0A0] group-hover:text-[#EEEEEE] transition-colors">
+                              <path d="M12 20h9"></path>
+                              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                            </svg>
+                            <span className="text-[13px] font-medium text-[#EEEEEE]">Rename</span>
+                          </div>
+                          <span className="text-[13px] text-[#888888] font-medium">GMT+7</span>
+                        </button>
+                        
+                        <div className="h-px bg-[#3A3A3A] my-1 mx-3"></div>
+                        
+                        <button className="flex items-center w-full text-left px-3 py-1.5 hover:bg-[#3B3B3B] transition-colors group">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-[14px] h-[14px] mr-3 text-[#e05e5e]">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                          </svg>
+                          <span className="text-[13px] font-medium text-[#e05e5e]">Remove time zone from list</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -328,11 +395,12 @@ export function MainCalendar({
             <div className="flex-1 flex">
               {days.map((day, i) => {
                 const ts = new Date(2026, 4, day.date).getTime();
+                const isSelectedDay = selectedDate && day.fullDate.toDateString() === selectedDate.toDateString();
                 return (
                   <div
                     key={i}
                     data-grid-date={ts}
-                    className="flex-1"
+                    className={`flex-1 transition-colors duration-500 ${isSelectedDay ? 'bg-[rgba(255,0,0,0.1)]' : ''}`}
                   >
                     <div className="h-full w-full flex items-end justify-center pb-1.5">
                       <div className="flex items-center cursor-pointer group">
@@ -352,6 +420,45 @@ export function MainCalendar({
                 );
               })}
             </div>
+
+            {/* Collapse Weekends Button */}
+            <div className="absolute right-1.5 bottom-[5px] bg-white z-20">
+              <button 
+                type="button"
+                onClick={() => setIsDaysMenuOpen(!isDaysMenuOpen)}
+                className="flex items-center justify-center w-5 h-5 rounded hover:bg-neutral-100 text-neutral-400 hover:text-neutral-600 transition-colors"
+                aria-label="Change visible days"
+              >
+                <svg viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '12px', height: '12px' }}>
+                  <path d="M3 9.5h6M6 2v5M3 4.5h6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"></path>
+                </svg>
+              </button>
+
+              {isDaysMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsDaysMenuOpen(false)}></div>
+                  <div className="absolute top-[calc(100%+4px)] right-0 bg-[#282828] text-[#EEEEEE] rounded-[8px] shadow-[0_12px_40px_rgba(0,0,0,0.3)] z-50 flex items-center h-[32px] px-1 border border-[#3A3A3A]">
+                    <button 
+                      onClick={() => setVisibleDays(prev => Math.max(1, prev - 1))}
+                      disabled={visibleDays <= 1}
+                      className="w-7 h-[24px] flex items-center justify-center rounded-[4px] hover:bg-[#3B3B3B] disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
+                    >
+                      <svg viewBox="0 0 16 16" fill="currentColor" style={{ width: '12px', height: '12px' }}><path d="M3 7.25h10v1.5H3z"></path></svg>
+                    </button>
+                    <div className="w-[28px] text-center text-[13px] font-medium leading-none select-none">
+                      {visibleDays}
+                    </div>
+                    <button 
+                      onClick={() => setVisibleDays(prev => Math.max(1, prev + 1))}
+                      disabled={visibleDays >= 14}
+                      className="w-7 h-[24px] flex items-center justify-center rounded-[4px] hover:bg-[#3B3B3B] disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
+                    >
+                      <svg viewBox="0 0 16 16" fill="currentColor" style={{ width: '12px', height: '12px' }}><path d="M8.75 3v4.25H13v1.5H8.75V13h-1.5V8.75H3v-1.5h4.25V3h1.5z"></path></svg>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Row 2: All-day */}
@@ -362,11 +469,67 @@ export function MainCalendar({
             </div>
             {/* All-day slots */}
             <div className="flex-1 flex">
-              {days.map((_, i) => (
-                <div key={i} className="flex-1 border-r border-neutral-200 h-full relative">
-                  {/* Event chips would go here */}
+              {days.map((day, i) => {
+                const isSelectedDay = selectedDate && day.fullDate.toDateString() === selectedDate.toDateString();
+                
+                const dayAllDayEvents = events?.filter(e => {
+                  if (!e.isAllDay) return false;
+                  const eventDayMatch = e.date && e.date.includes(day.date.toString());
+                  return eventDayMatch || (day.isCurrent === false && e.date === "today");
+                }) || [];
+
+                return (
+                <div 
+                  key={i} 
+                  className={`flex-1 border-r border-neutral-200 h-full relative transition-colors duration-500 ${isSelectedDay ? 'bg-[rgba(255,0,0,0.1)] border-x border-red-500/50' : ''}`}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const dataStr = e.dataTransfer.getData('text/plain');
+                    if (!dataStr) return;
+                    try {
+                      const data = JSON.parse(dataStr);
+                      if (setEvents && events) {
+                        const monthShort = day.fullDate.toLocaleDateString('en-US', { month: 'short' });
+                        const newDateStr = `${day.name} ${monthShort} ${day.date}`;
+                        
+                        const newEvents = events.map(ev => {
+                          if (ev.id === data.id) {
+                            return { ...ev, date: newDateStr, isAllDay: true };
+                          }
+                          return ev;
+                        });
+                        setEvents(newEvents);
+                      }
+                    } catch(err) {}
+                  }}
+                >
+                  <div className="flex flex-col gap-[2px] px-1 py-0.5 w-full">
+                    {dayAllDayEvents.map(event => (
+                      <div
+                        key={event.id}
+                        draggable
+                        onDragStart={(e) => {
+                          e.stopPropagation();
+                          e.dataTransfer.setData('text/plain', JSON.stringify({ id: event.id, type: 'allday' }));
+                        }}
+                        className={`w-full rounded-[4px] px-1.5 h-[20px] flex items-center text-[12px] font-bold text-white truncate cursor-pointer overflow-hidden ${event.eventType === 'Birthday' ? 'bg-[#bce0fd]' : event.color || 'bg-[#3cb1ff]'}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          if (onEventClick) onEventClick(event, { x: rect.right + 10, y: rect.top });
+                        }}
+                      >
+                        {event.eventType === 'Birthday' && (
+                          <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 mr-1.5 shrink-0"><path d="M19 8h-2.18c.11-.31.18-.64.18-1 0-1.66-1.34-3-3-3-1.08 0-2.03.57-2.5 1.43C11.03 4.57 10.08 4 9 4 7.34 4 6 5.34 6 7c0 .36.07.69.18 1H4c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2v6c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-6c1.1 0 2-.9 2-2v-2c0-1.1-.9-2-2-2zM9 6c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm5 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zM4 10h7v2H4v-2zm9 0h7v2h-7v-2zm-7 8v-6h7v6H6zm9 0v-6h7v6h-7z"/></svg>
+                        )}
+                        <span className="truncate leading-none pt-[1px]">{event.title}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -402,13 +565,119 @@ export function MainCalendar({
             {/* Grid Columns */}
             <div className="flex-1 flex relative">
               {days.map((day, i) => {
-                const ts = new Date(2026, 4, day.date).getTime();
+                const ts = new Date(day.fullDate.getFullYear(), day.fullDate.getMonth(), day.fullDate.getDate()).getTime();
+                const isSelectedDay = selectedDate && day.fullDate.toDateString() === selectedDate.toDateString();
                 return (
                   <div
                     key={i}
                     data-grid-container="true"
                     data-grid-date={ts}
-                    className="flex-1 border-r border-neutral-200 relative"
+                    className={`flex-1 border-r border-neutral-200 relative transition-colors duration-500 ${isSelectedDay ? 'bg-[rgba(255,0,0,0.1)] border-x border-red-500/50' : ''}`}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const dataStr = e.dataTransfer.getData('text/plain');
+                      if (!dataStr) return;
+                      try {
+                        const data = JSON.parse(dataStr);
+                        const monthShort = day.fullDate.toLocaleDateString('en-US', { month: 'short' });
+                        const newDateStr = `${day.name} ${monthShort} ${day.date}`;
+
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const offsetY = data.offsetY || 0;
+                        const yOffset = e.clientY - rect.top - offsetY;
+                        const hourFloat = Math.max(0, yOffset / 48);
+                        
+                        const hour = Math.floor(hourFloat);
+                        const minutes = Math.floor((hourFloat - hour) * 60);
+                        const roundedMinutes = minutes < 15 ? 0 : (minutes < 45 ? 30 : 60);
+                        
+                        let finalHour = hour;
+                        let finalMins = roundedMinutes;
+                        if (finalMins === 60) {
+                          finalHour += 1;
+                          finalMins = 0;
+                        }
+                        
+                        const startH = finalHour + finalMins / 60;
+                        
+                        const formatTimeLocal = (h: number) => {
+                          let hr = Math.floor(h);
+                          let min = Math.round((h - hr) * 60);
+                          if (min === 60) { hr += 1; min = 0; }
+                          if (hr >= 24) { hr = 23; min = 30; }
+                          const ampm = hr >= 12 ? 'PM' : 'AM';
+                          const displayHour = hr > 12 ? hr - 12 : (hr === 0 ? 12 : hr);
+                          return `${displayHour}:${min.toString().padStart(2, '0')} ${ampm}`;
+                        };
+                        
+                        const parseTimeLocal = (timeStr: string) => {
+                          if (!timeStr) return 0;
+                          const parts = timeStr.split(" ");
+                          if (parts.length < 2) return 0;
+                          const time = parts[0];
+                          const ampm = parts[1];
+                          const timeParts = time.split(":");
+                          let h = parseInt(timeParts[0]);
+                          const m = timeParts[1] ? parseInt(timeParts[1]) : 0;
+                          if (ampm === "PM" && h < 12) h += 12;
+                          if (ampm === "AM" && h === 12) h = 0;
+                          return h + m / 60;
+                        };
+
+                        if (setEvents && events) {
+                          const newEvents = events.map(ev => {
+                            if (ev.id === data.id) {
+                              let newStartTime = ev.startTime;
+                              let newEndTime = ev.endTime;
+                              
+                              if (data.type === 'time') {
+                                const oldStartH = parseTimeLocal(ev.startTime);
+                                const oldEndH = parseTimeLocal(ev.endTime);
+                                const duration = oldEndH - oldStartH;
+                                
+                                newStartTime = formatTimeLocal(startH);
+                                newEndTime = formatTimeLocal(startH + duration);
+                              }
+                              
+                              return { 
+                                ...ev, 
+                                date: newDateStr, 
+                                isAllDay: false,
+                                startTime: newStartTime,
+                                endTime: newEndTime
+                              };
+                            }
+                            return ev;
+                          });
+                          setEvents(newEvents);
+                        }
+                      } catch(err) {}
+                    }}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const yOffset = e.clientY - rect.top;
+                      const hourFloat = yOffset / 48;
+                      const hour = Math.floor(hourFloat);
+                      const minutes = Math.floor((hourFloat - hour) * 60);
+                      // Round to nearest 30 mins
+                      const roundedMinutes = minutes < 30 ? 0 : 30;
+                      
+                      const ampm = hour >= 12 ? 'PM' : 'AM';
+                      const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
+                      const startTime = `${displayHour}:${roundedMinutes === 0 ? '00' : '30'} ${ampm}`;
+                      
+                      const daysNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                      const dateStr = `${daysNames[i]} Apr ${day.date}`;
+                      
+                      setContextMenu({
+                        x: e.clientX,
+                        y: e.clientY,
+                        date: dateStr,
+                        startTime
+                      });
+                    }}
                   >
                     <div className="absolute inset-0 pointer-events-none">
                       <div className="relative h-full w-full">
@@ -453,9 +722,17 @@ export function MainCalendar({
                           return (
                             <div 
                               key={event.id}
+                              draggable
+                              onDragStart={(e) => {
+                                e.stopPropagation();
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const offsetY = e.clientY - rect.top;
+                                e.dataTransfer.setData('text/plain', JSON.stringify({ id: event.id, type: 'time', offsetY }));
+                              }}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (onEventClick) onEventClick(event);
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                if (onEventClick) onEventClick(event, { x: rect.right + 10, y: rect.top });
                               }}
                               className={`absolute left-0 right-2 bg-[#3cb1ff] rounded-[4px] px-1.5 py-0.5 text-white overflow-hidden pointer-events-auto cursor-pointer border border-[#1b9aea] z-20 hover:brightness-95 transition-all`}
                               style={{ top: `${top}px`, height: `${height}px` }}
@@ -499,10 +776,12 @@ export function MainCalendar({
                   style={{ top: `${timeIndicatorTop}px` }}
                 >
                   {/* Red dot on current day */}
-                  <div 
-                    className="absolute w-2 h-2 bg-[#db4c3f] rounded-full -translate-y-1/2 -translate-x-1/2"
-                    style={{ left: `calc((100% / 7) * ${days.findIndex(d => d.isCurrent)})` }}
-                  ></div>
+                  {days.findIndex(d => d.isCurrent) !== -1 && (
+                    <div 
+                      className="absolute w-2 h-2 bg-[#db4c3f] rounded-full -translate-y-1/2 -translate-x-1/2"
+                      style={{ left: `calc((100% / ${visibleDays}) * ${days.findIndex(d => d.isCurrent)})` }}
+                    ></div>
+                  )}
                 </div>
               )}
 
@@ -510,6 +789,31 @@ export function MainCalendar({
           </div>
         </div>
       </div>
+      {/* Context Menu */}
+      {contextMenu && (
+        <div 
+          className="fixed z-[100] bg-[#2d2d2d] border border-[#3f3f3f] rounded-[8px] py-1 shadow-[0_4px_12px_rgba(0,0,0,0.3)] w-[200px]"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+          onContextMenu={(e) => e.preventDefault()}
+        >
+          <button 
+            className="w-full text-left px-3 py-1.5 hover:bg-[#3f3f3f] flex items-center justify-between group transition-colors"
+            onClick={() => {
+              if (onCreateEventClick) onCreateEventClick(contextMenu.date, contextMenu.startTime, { x: contextMenu.x + 50, y: contextMenu.y });
+            }}
+          >
+            <span className="text-[13px] text-[#ebebeb]">Create event</span>
+            <span className="text-[12px] text-[#a0a0a0] font-medium font-sans opacity-0 group-hover:opacity-100 transition-opacity">C</span>
+          </button>
+          <button 
+            disabled
+            className="w-full text-left px-3 py-1.5 flex items-center justify-between opacity-50 cursor-not-allowed"
+          >
+            <span className="text-[13px] text-[#a0a0a0]">Paste event</span>
+            <span className="text-[12px] text-[#a0a0a0] font-medium font-sans">Ctrl V</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

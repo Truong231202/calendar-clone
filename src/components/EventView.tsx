@@ -32,7 +32,21 @@ const formatDurationText = (mins: number) => {
   return `${h} h ${min} min`;
 };
 
-export const EventView = ({ onBack, onSaveEvent, activeEvent }: { onBack: () => void, onSaveEvent?: (event: any) => void, activeEvent?: any }) => {
+export const EventView = ({ 
+  activeEvent, 
+  onSaveEvent, 
+  onBack,
+  onClose,
+  onDockToSidebar,
+  onDeleteAllEvents
+}: { 
+  activeEvent?: any; 
+  onSaveEvent?: (event: any) => void;
+  onBack?: () => void;
+  onClose?: () => void;
+  onDockToSidebar?: () => void;
+  onDeleteEvent?: (id: string) => void;
+}) => {
   const eventId = useRef(activeEvent?.id || Math.random().toString(36).substr(2, 9));
   const [title, setTitle] = useState(activeEvent?.title || "");
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -69,6 +83,9 @@ export const EventView = ({ onBack, onSaveEvent, activeEvent }: { onBack: () => 
   const [busyState, setBusyState] = useState("Busy");
   const [visibilityState, setVisibilityState] = useState("Default visibility");
 
+  const [eventType, setEventType] = useState("Event");
+
+  const eventTypeRef = useRef<HTMLDivElement>(null);
   const startTimeRef = useRef<HTMLInputElement>(null);
   const endTimeRef = useRef<HTMLInputElement>(null);
   const dateRef = useRef<HTMLInputElement>(null);
@@ -78,6 +95,7 @@ export const EventView = ({ onBack, onSaveEvent, activeEvent }: { onBack: () => 
   const reminderTriggerRef = useRef<HTMLDivElement>(null);
   const busyRef = useRef<HTMLDivElement>(null);
   const visibilityRef = useRef<HTMLDivElement>(null);
+  const moreMenuRef = useRef<HTMLButtonElement>(null);
 
   // Initialize from activeEvent if it changes (only when switching events)
   useEffect(() => {
@@ -113,18 +131,19 @@ export const EventView = ({ onBack, onSaveEvent, activeEvent }: { onBack: () => 
     if (onSaveEvent) {
       onSaveEvent({
         id: eventId.current,
-        title: title || "New Event",
+        title: title || (eventType === 'Birthday' ? 'Birthday' : "New Event"),
         startTime,
         endTime,
-        isAllDay,
+        isAllDay: eventType === 'Birthday' ? true : isAllDay,
         date,
         conferencing,
         locationValue,
         participantsValue,
+        eventType,
         color: activeEvent?.color || "bg-[#3cb1ff]"
       });
     }
-  }, [title, startTime, endTime, isAllDay, date, conferencing, locationValue, participantsValue]);
+  }, [title, startTime, endTime, isAllDay, date, conferencing, locationValue, participantsValue, eventType]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -282,25 +301,48 @@ export const EventView = ({ onBack, onSaveEvent, activeEvent }: { onBack: () => 
     <div className="h-full flex flex-col w-[284px] shrink-0 bg-white overflow-y-auto text-neutral-800 pb-10 relative">
       {/* Top right sidebar icon */}
       <div className="flex justify-between items-center p-2 mb-2">
-        <div className="flex items-center text-[#37352F]">
-          <span className="text-[14px] font-semibold ml-2 mr-1">Event</span>
+        <div 
+          ref={eventTypeRef}
+          onClick={(e) => handleDropdownClick(e, "eventType", eventTypeRef)}
+          className="flex items-center text-[#37352F] hover:bg-neutral-100 px-1 py-1 rounded cursor-pointer transition-colors"
+        >
+          <span className="text-[14px] font-semibold ml-1 mr-1">{eventType}</span>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" className="w-[14px] h-[14px] text-[#a0a0a0]">
             <path fill="currentColor" d="m12.76 6.52-4.32 4.32a.62.62 0 0 1-.44.18.62.62 0 0 1-.44-.18L3.24 6.52a.628.628 0 0 1 0-.88c.24-.24.64-.24.88 0L8 9.52l3.88-3.88c.24-.24.64-.24.88 0s.24.64 0 .88Z"></path>
           </svg>
         </div>
         <div className="flex items-center gap-1">
-          <button className="flex items-center justify-center w-7 h-7 rounded hover:bg-neutral-100 text-[#a0a0a0] transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20" className="w-4 h-4"><path fill="currentColor" d="M3.75 12.5c.345 0 .625.28.625.625v1.625c0 .483.392.875.875.875h1.625a.625.625 0 1 1 0 1.25H5.25a2.125 2.125 0 0 1-2.125-2.125v-1.625c0-.345.28-.625.625-.625Zm12.5 0c.345 0 .625.28.625.625v1.625a2.125 2.125 0 0 1-2.125 2.125h-1.625a.625.625 0 1 1 0-1.25h1.625a.875.875 0 0 0 .875-.875v-1.625c0-.345.28-.625.625-.625ZM12.5 7.375c.621 0 1.125.504 1.125 1.125v3c0 .621-.504 1.125-1.125 1.125h-5A1.125 1.125 0 0 1 6.375 11.5v-3c0-.621.504-1.125 1.125-1.125h5Zm-4.875 4h4.75v-2.75h-4.75v2.75Zm-.75-8.25a.625.625 0 1 1 0 1.25H5.25a.875.875 0 0 0-.875.875v1.625a.625.625 0 1 1-1.25 0V5.25c0-1.174.951-2.125 2.125-2.125h1.625Zm7.875 0c1.174 0 2.125.951 2.125 2.125v1.625a.625.625 0 1 1-1.25 0V5.25a.875.875 0 0 0-.875-.875h-1.625a.625.625 0 1 1 0-1.25h1.625Z"></path></svg>
-          </button>
-          <button className="flex items-center justify-center w-7 h-7 rounded hover:bg-neutral-100 text-[#a0a0a0] transition-colors">
+          {/* More button (always visible) */}
+          <button 
+            ref={moreMenuRef}
+            onClick={(e) => handleDropdownClick(e, 'more', moreMenuRef as any)}
+            className={`flex items-center justify-center w-7 h-7 rounded hover:bg-neutral-100 transition-colors ${openDropdown === 'more' ? 'bg-neutral-100 text-[#37352F]' : 'text-[#a0a0a0]'}`}
+          >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20" className="w-4 h-4"><path fill="currentColor" d="M4 11.375a1.375 1.375 0 1 0 0-2.75 1.375 1.375 0 0 0 0 2.75Zm6 0a1.375 1.375 0 1 0 0-2.75 1.375 1.375 0 0 0 0 2.75Zm6 0a1.375 1.375 0 1 0 0-2.75 1.375 1.375 0 0 0 0 2.75Z"></path></svg>
           </button>
-          <button
-            onClick={onBack}
-            className="flex items-center justify-center w-7 h-7 rounded hover:bg-neutral-100 text-[#a0a0a0] transition-colors ml-1"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20" className="w-[18px] h-[18px]"><path fill="currentColor" d="M16.25 3.625c1.174 0 2.125.951 2.125 2.125v8.5a2.125 2.125 0 0 1-2.125 2.125H3.75a2.125 2.125 0 0 1-2.125-2.125v-8.5c0-1.174.951-2.125 2.125-2.125h12.5Zm-12.5 1.25a.875.875 0 0 0-.875.875v8.5c0 .483.392.875.875.875h8.7V4.875h-8.7Zm9.8 10.25h2.7a.875.875 0 0 0 .875-.875v-8.5a.875.875 0 0 0-.875-.875h-2.7v10.25Z"/></svg>
-          </button>
+          
+          {onDockToSidebar ? (
+            <>
+              <button onClick={onDockToSidebar} className="flex items-center justify-center w-7 h-7 rounded hover:bg-neutral-100 text-[#a0a0a0] transition-colors ml-0.5" title="Dock to right sidebar">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20" className="w-[18px] h-[18px]"><path fill="currentColor" d="M16.25 3.625c1.174 0 2.125.951 2.125 2.125v8.5a2.125 2.125 0 0 1-2.125 2.125H3.75a2.125 2.125 0 0 1-2.125-2.125v-8.5c0-1.174.951-2.125 2.125-2.125h12.5Zm-12.5 1.25a.875.875 0 0 0-.875.875v8.5c0 .483.392.875.875.875h8.7V4.875h-8.7Zm9.8 10.25h2.7a.875.875 0 0 0 .875-.875v-8.5a.875.875 0 0 0-.875-.875h-2.7v10.25Z"/></svg>
+              </button>
+              <button onClick={onClose} className="flex items-center justify-center w-7 h-7 rounded hover:bg-neutral-100 text-[#a0a0a0] transition-colors ml-0.5" title="Close">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20" className="w-[18px] h-[18px]"><path fill="currentColor" d="M15.884 5.884a.625.625 0 0 0-.884-.884L10 9.116 5.001 4.117a.625.625 0 0 0-.884.884l4.999 4.999-4.999 4.999a.625.625 0 0 0 .884.884l4.999-4.999 4.999 4.999a.625.625 0 0 0 .884-.884l-4.999-4.999 4.999-4.999Z"></path></svg>
+              </button>
+            </>
+          ) : (
+            <>
+              <button className="flex items-center justify-center w-7 h-7 rounded hover:bg-neutral-100 text-[#a0a0a0] transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20" className="w-4 h-4"><path fill="currentColor" d="M3.75 12.5c.345 0 .625.28.625.625v1.625c0 .483.392.875.875.875h1.625a.625.625 0 1 1 0 1.25H5.25a2.125 2.125 0 0 1-2.125-2.125v-1.625c0-.345.28-.625.625-.625Zm12.5 0c.345 0 .625.28.625.625v1.625a2.125 2.125 0 0 1-2.125 2.125h-1.625a.625.625 0 1 1 0-1.25h1.625a.875.875 0 0 0 .875-.875v-1.625c0-.345.28-.625.625-.625ZM12.5 7.375c.621 0 1.125.504 1.125 1.125v3c0 .621-.504 1.125-1.125 1.125h-5A1.125 1.125 0 0 1 6.375 11.5v-3c0-.621.504-1.125 1.125-1.125h5Zm-4.875 4h4.75v-2.75h-4.75v2.75Zm-.75-8.25a.625.625 0 1 1 0 1.25H5.25a.875.875 0 0 0-.875.875v1.625a.625.625 0 1 1-1.25 0V5.25c0-1.174.951-2.125 2.125-2.125h1.625Zm7.875 0c1.174 0 2.125.951 2.125 2.125v1.625a.625.625 0 1 1-1.25 0V5.25a.875.875 0 0 0-.875-.875h-1.625a.625.625 0 1 1 0-1.25h1.625Z"></path></svg>
+              </button>
+              <button
+                onClick={onBack}
+                className="flex items-center justify-center w-7 h-7 rounded hover:bg-neutral-100 text-[#a0a0a0] transition-colors ml-1"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20" className="w-[18px] h-[18px]"><path fill="currentColor" d="M16.25 3.625c1.174 0 2.125.951 2.125 2.125v8.5a2.125 2.125 0 0 1-2.125 2.125H3.75a2.125 2.125 0 0 1-2.125-2.125v-8.5c0-1.174.951-2.125 2.125-2.125h12.5Zm-12.5 1.25a.875.875 0 0 0-.875.875v8.5c0 .483.392.875.875.875h8.7V4.875h-8.7Zm9.8 10.25h2.7a.875.875 0 0 0 .875-.875v-8.5a.875.875 0 0 0-.875-.875h-2.7v10.25Z"/></svg>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -311,13 +353,43 @@ export const EventView = ({ onBack, onSaveEvent, activeEvent }: { onBack: () => 
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           className="text-[14px] font-medium text-neutral-800 outline-none w-full bg-transparent px-2 py-1.5 border border-transparent hover:border-neutral-200 focus:border-[#2383e2] focus:bg-white rounded-[6px] placeholder-neutral-400 transition-colors"
-          placeholder="Event title"
+          placeholder={eventType === 'Birthday' ? 'Birthday' : 'Event title'}
         />
       </div>
 
       <div className="w-full h-px bg-[#f0f0f0] shrink-0 mb-2"></div>
 
       {/* Times */}
+      {eventType === 'Birthday' ? (
+        <div className="px-4 py-2 flex flex-col space-y-2">
+          <div className="flex items-center text-[13px] text-[#37352F]">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20" className="w-[16px] h-[16px] mr-3 text-[#a0a0a0]"><path fill="currentColor" d="M10.625 5.725a.625.625 0 1 0-1.25 0v3.65H6.4a.625.625 0 1 0 0 1.25H10c.345 0 .625-.28.625-.625V5.725Z"></path><path fill="currentColor" d="M10 2.375a7.625 7.625 0 1 0 0 15.25 7.625 7.625 0 0 0 0-15.25ZM3.625 10a6.375 6.375 0 1 1 12.75 0 6.375 6.375 0 0 1-12.75 0Z"></path></svg>
+            <input 
+              ref={dateRef}
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              onClick={(e) => handleDropdownClick(e, 'date', dateRef)}
+              className={`w-[110px] px-1.5 py-1 rounded-[6px] hover:bg-neutral-100 transition-colors outline-none cursor-pointer focus:cursor-text ${openDropdown === 'date' ? 'bg-[#e5efff] text-[#2383e2]' : 'bg-transparent'}`}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between text-[13px] text-[#37352F]">
+            <div className="flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20" className="w-[16px] h-[16px] mr-3 shrink-0 text-[#a0a0a0]"><path fill="currentColor" d="m3.625 11.151 1.187-1.187a.625.625 0 1 1 .884.884l-2.254 2.254a.625.625 0 0 1-.884 0L.304 10.848a.625.625 0 0 1 .884-.884l1.187 1.187V10a7.625 7.625 0 0 1 12.813-5.588.625.625 0 1 1-.85.916A6.375 6.375 0 0 0 3.625 10v1.151Zm14-2.302 1.187 1.187a.625.625 0 1 0 .884-.884l-2.254-2.254a.625.625 0 0 0-.884 0l-2.254 2.254a.625.625 0 1 0 .884.884l1.187-1.187V10a6.375 6.375 0 0 1-10.713 4.672.625.625 0 0 0-.85.915A7.625 7.625 0 0 0 17.625 10V8.85Z"></path></svg>
+              <span className="text-[#37352F]">Every year</span>
+              <span className="text-[#a0a0a0] ml-1">on May 3</span>
+            </div>
+            <div className="flex space-x-0.5">
+              <button className="text-[#a0a0a0] opacity-50 cursor-not-allowed w-5 h-5 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20" className="w-4 h-4"><path fill="currentColor" d="M6.308 9.558a.625.625 0 0 0 0 .884l5.4 5.4a.625.625 0 1 0 .884-.884L7.634 10l4.958-4.958a.625.625 0 1 0-.884-.884l-5.4 5.4Z"></path></svg>
+              </button>
+              <button className="text-[#a0a0a0] hover:bg-neutral-100 rounded-[4px] w-5 h-5 flex items-center justify-center transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20" className="w-4 h-4"><path fill="currentColor" d="M13.692 10.442a.625.625 0 0 0 0-.884l-5.4-5.4a.625.625 0 1 0-.884.884L12.366 10l-4.958 4.958a.625.625 0 0 0 .884.884l5.4-5.4Z"></path></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
       <div className="px-4 py-2 flex flex-col space-y-2">
         {!isAllDay && (
           <div className="flex items-center text-[13px] text-[#37352F]">
@@ -397,11 +469,11 @@ export const EventView = ({ onBack, onSaveEvent, activeEvent }: { onBack: () => 
 
         {/* Quick add buttons */}
         {(!showAllDayField || !showTimeZoneField || !showRepeatField) && (
-          <div className="flex items-center pl-[28px] text-[13px] text-[#a0a0a0] gap-3 pt-1">
+          <div className="flex items-center ml-[28px] mt-1 mb-2 bg-[#f5f5f5] rounded-[6px] w-fit p-0.5 gap-0.5">
             {!showAllDayField && (
               <button 
                 onClick={() => { setShowAllDayField(true); setIsAllDay(true); }}
-                className="hover:text-[#37352F] transition-colors"
+                className="text-[12px] text-[#a0a0a0] font-medium px-2.5 py-1 hover:bg-[#e8e8e8] hover:text-[#37352F] rounded-[4px] transition-colors"
               >
                 All-day
               </button>
@@ -409,7 +481,7 @@ export const EventView = ({ onBack, onSaveEvent, activeEvent }: { onBack: () => 
             {!showTimeZoneField && (
               <button 
                 onClick={() => setShowTimeZoneField(true)}
-                className="hover:text-[#37352F] transition-colors"
+                className="text-[12px] text-[#a0a0a0] font-medium px-2.5 py-1 hover:bg-[#e8e8e8] hover:text-[#37352F] rounded-[4px] transition-colors"
               >
                 Time zone
               </button>
@@ -417,7 +489,7 @@ export const EventView = ({ onBack, onSaveEvent, activeEvent }: { onBack: () => 
             {!showRepeatField && (
               <button 
                 onClick={() => setShowRepeatField(true)}
-                className="hover:text-[#37352F] transition-colors"
+                className="text-[12px] text-[#a0a0a0] font-medium px-2.5 py-1 hover:bg-[#e8e8e8] hover:text-[#37352F] rounded-[4px] transition-colors"
               >
                 Repeat
               </button>
@@ -425,10 +497,62 @@ export const EventView = ({ onBack, onSaveEvent, activeEvent }: { onBack: () => 
           </div>
         )}
       </div>
+      )}
 
       <div className="w-full h-px bg-[#f0f0f0] shrink-0 my-2"></div>
 
-      {/* Participants, Conferencing, Location */}
+      {eventType === 'Birthday' ? (
+        <div className="px-4 py-2 flex flex-col space-y-[14px]">
+          {/* Owner/Calendar */}
+          <div className="flex items-center text-[13px] text-[#37352F]">
+            <div className="w-[16px] h-[16px] flex items-center justify-center mr-3 shrink-0">
+              <div className="w-[12px] h-[12px] bg-[#3cb1ff] rounded-[3px]"></div>
+            </div>
+            <span className="text-[#37352F]">einhart2312@gmail.com</span>
+          </div>
+          
+          {/* Reminders for Birthday */}
+          <div className="flex flex-col text-[13px]">
+            <div 
+              ref={reminderTriggerRef}
+              onClick={(e) => handleDropdownClick(e, 'reminders', reminderTriggerRef)}
+              className={`flex items-center cursor-pointer py-1 px-2 -ml-2 rounded-[6px] transition-colors group ${openDropdown === 'reminders' ? 'bg-[#f0f0f0]' : 'hover:bg-[#f0f0f0]'}`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20" className={`w-[16px] h-[16px] mr-3 shrink-0 ${openDropdown === 'reminders' || reminders.length > 0 ? 'text-[#a0a0a0]' : 'text-[#a0a0a0] group-hover:text-[#37352F] transition-colors'}`}><path fill="currentColor" d="M10 2.355a2.35 2.35 0 0 0-2.253 1.686 5.055 5.055 0 0 0-2.803 4.527v1.189c0 .919-.334 1.806-.939 2.498l-.818.935c-.881 1.007-.166 2.583 1.173 2.583h3.02a2.65 2.65 0 0 0 5.24 0h3.02c1.339 0 2.054-1.576 1.173-2.583l-.818-.935a3.793 3.793 0 0 1-.939-2.498v-1.19a5.055 5.055 0 0 0-2.803-4.526A2.35 2.35 0 0 0 10 2.355Zm1.5 13.418a1.55 1.55 0 0 1-2.998 0H11.5ZM8.909 4.564A1.104 1.104 0 0 1 10 3.605c.556 0 1.017.415 1.091.96l.049.353.329.138a3.807 3.807 0 0 1 2.337 3.512v1.189c0 1.221.444 2.401 1.248 3.32l.818.936a.307.307 0 0 1-.232.51H4.36a.308.308 0 0 1-.232-.51l.818-.935a5.043 5.043 0 0 0 1.248-3.321v-1.19c0-1.58.963-2.936 2.337-3.511l.33-.138.048-.354Z"></path></svg>
+              <span className={`${openDropdown === 'reminders' || reminders.length > 0 ? 'text-[#a0a0a0]' : 'text-[#a0a0a0] group-hover:text-[#37352F]'} transition-colors`}>Reminders</span>
+            </div>
+            {reminders.map((reminder, index) => (
+              <div 
+                key={index}
+                className="flex items-center group py-1 pl-[28px] pr-2 mt-0.5 rounded-[6px] hover:bg-[#f0f0f0] transition-colors -ml-2 -mr-2"
+              >
+                <span className="flex-1 text-[#37352F]">
+                  {reminder === "At start of event" ? (
+                    reminder
+                  ) : (
+                    <>
+                      <span className="font-semibold">{reminder.replace(' before', '')}</span> <span className="text-[#787774]">before</span>
+                    </>
+                  )}
+                </span>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const newReminders = [...reminders];
+                    newReminders.splice(index, 1);
+                    setReminders(newReminders);
+                  }}
+                  className="opacity-0 group-hover:opacity-100 p-1 hover:bg-[#e5e5e5] rounded-[4px] text-[#a0a0a0] transition-all"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20" className="w-[14px] h-[14px]"><path fill="currentColor" d="M15.692 5.192a.625.625 0 1 0-.884-.884L10 9.116 5.192 4.308a.625.625 0 1 0-.884.884L9.116 10l-4.808 4.808a.625.625 0 1 0 .884.884L10 10.884l4.808 4.808a.625.625 0 1 0 .884-.884L10.884 10l4.808-4.808Z"></path></svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Participants, Conferencing, Location */}
       <div className="px-4 py-2 flex flex-col space-y-[14px]">
         {/* Participants */}
         <div 
@@ -598,6 +722,8 @@ export const EventView = ({ onBack, onSaveEvent, activeEvent }: { onBack: () => 
           ))}
         </div>
       </div>
+        </>
+      )}
 
       {/* Dropdowns */}
       {openDropdown === 'start' && dropdownPosition && (
@@ -752,6 +878,31 @@ export const EventView = ({ onBack, onSaveEvent, activeEvent }: { onBack: () => 
         </div>
       )}
 
+      {openDropdown === 'eventType' && dropdownPosition && (
+        <div 
+          className="fixed z-[100] dropdown-container bg-[#262626] rounded-[8px] p-1.5 shadow-[0_4px_12px_rgba(0,0,0,0.2)] border border-[#3f3f3f] w-[180px]"
+          style={{ 
+            top: dropdownPosition.top - 20, 
+            left: dropdownPosition.left - 180 - 8 
+          }}
+        >
+          {["Event", "Birthday"].map(option => (
+            <button 
+              key={option}
+              onClick={() => { setEventType(option); setOpenDropdown(null); }}
+              className={`flex items-center w-full text-left px-3 py-[6px] rounded-[6px] text-[13px] text-[#ebebeb] transition-colors ${eventType === option ? 'bg-[#3f3f3f]' : 'hover:bg-[#3f3f3f]'}`}
+            >
+              <div className="w-[18px] h-[18px] flex items-center justify-center mr-2 shrink-0 text-white">
+                {eventType === option && (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                )}
+              </div>
+              {option}
+            </button>
+          ))}
+        </div>
+      )}
+
       {openDropdown === 'ai_notes' && dropdownPosition && (
         <div 
           className="fixed z-[100] dropdown-container bg-[#262626] rounded-[8px] py-1.5 shadow-[0_4px_12px_rgba(0,0,0,0.2)] border border-[#3f3f3f] w-[280px]"
@@ -894,6 +1045,27 @@ export const EventView = ({ onBack, onSaveEvent, activeEvent }: { onBack: () => 
               )}
             </button>
           ))}
+        </div>
+      )}
+
+      {openDropdown === 'more' && dropdownPosition && (
+        <div 
+          className="fixed z-[100] dropdown-container bg-white rounded-[6px] py-1.5 shadow-[0_4px_12px_rgba(0,0,0,0.15)] border border-[#e5e5e5] w-[180px]"
+          style={{ 
+            top: dropdownPosition.top, 
+            right: dropdownPosition.right ? window.innerWidth - dropdownPosition.right : 'auto',
+            left: dropdownPosition.right ? 'auto' : dropdownPosition.left
+          }}
+        >
+          <button 
+            onClick={() => {
+              if (onDeleteEvent) onDeleteEvent(eventId.current);
+              setOpenDropdown(null);
+            }}
+            className="flex items-center w-full text-left px-3 py-1.5 text-[13px] text-[#eb5757] hover:bg-[#f5f5f5] transition-colors"
+          >
+            Delete event
+          </button>
         </div>
       )}
     </div>

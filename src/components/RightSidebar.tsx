@@ -8,7 +8,8 @@ const RightSidebar = ({
   view,
   onChangeView,
   onSaveEvent,
-  activeEvent
+  activeEvent,
+  onDeleteEvent
 }: { 
   isOpen: boolean; 
   onClose?: () => void;
@@ -16,6 +17,7 @@ const RightSidebar = ({
   onChangeView: (view: "default" | "recurring" | "event") => void;
   onSaveEvent?: (event: any) => void;
   activeEvent?: any;
+  onDeleteEvent?: (id: string) => void;
 }) => {
   const [isWelcomeVisible, setIsWelcomeVisible] = useState(true);
 
@@ -28,7 +30,7 @@ const RightSidebar = ({
       {view === "recurring" ? (
         <RecurringLinkView onBack={() => onChangeView("default")} />
       ) : view === "event" ? (
-        <EventView onBack={() => onChangeView("default")} onSaveEvent={onSaveEvent} activeEvent={activeEvent} />
+        <EventView onBack={() => onChangeView("default")} onSaveEvent={onSaveEvent} activeEvent={activeEvent} onDeleteEvent={onDeleteEvent} />
       ) : (
         <div className="w-[284px] h-full flex flex-col shrink-0">
           {/* Search Header */}

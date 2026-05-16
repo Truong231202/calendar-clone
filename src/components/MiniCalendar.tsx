@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-export const MiniCalendar = ({ baseDate, setBaseDate }: { baseDate: Date, setBaseDate: (date: Date) => void }) => {
+export const MiniCalendar = ({ baseDate, setBaseDate, selectedDate, setSelectedDate }: { baseDate: Date, setBaseDate: (date: Date) => void, selectedDate?: Date | null, setSelectedDate?: (date: Date | null) => void }) => {
   const [displayMonth, setDisplayMonth] = useState(() => new Date(baseDate.getFullYear(), baseDate.getMonth(), 1));
 
   useEffect(() => {
@@ -111,7 +111,10 @@ export const MiniCalendar = ({ baseDate, setBaseDate }: { baseDate: Date, setBas
                   <td 
                     key={dIndex} 
                     className={cellClass}
-                    onClick={() => setBaseDate(new Date(date))}
+                    onClick={() => {
+                      setBaseDate(new Date(date));
+                      if (setSelectedDate) setSelectedDate(new Date(date));
+                    }}
                   >
                     {today ? (
                       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-6 h-6 bg-[#ef4444] text-white rounded font-medium shadow-sm z-10">
