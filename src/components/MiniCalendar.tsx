@@ -4,6 +4,7 @@ export const MiniCalendar = ({ baseDate, setBaseDate }: { baseDate: Date, setBas
   const [displayMonth, setDisplayMonth] = useState(() => new Date(baseDate.getFullYear(), baseDate.getMonth(), 1));
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDisplayMonth(new Date(baseDate.getFullYear(), baseDate.getMonth(), 1));
   }, [baseDate]);
 
@@ -19,7 +20,7 @@ export const MiniCalendar = ({ baseDate, setBaseDate }: { baseDate: Date, setBas
   startDate.setDate(startDate.getDate() - startDate.getDay());
 
   const weeks = [];
-  let currentDay = new Date(startDate);
+  const currentDay = new Date(startDate);
 
   for (let i = 0; i < 6; i++) {
     const week = [];

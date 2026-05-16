@@ -14,6 +14,11 @@ export default function Home() {
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
   const [baseDate, setBaseDate] = useState(() => new Date());
+  const [rightSidebarView, setRightSidebarView] = useState<"default" | "recurring" | "event">("default");
+  const [events, setEvents] = useState<any[]>([]);
+  const [activeEventId, setActiveEventId] = useState<string | null>(null);
+
+  const activeEvent = events.find(e => e.id === activeEventId) || null;
 
   return (
     <div className="flex h-screen w-full bg-white overflow-hidden text-neutral-800 relative">
@@ -23,7 +28,14 @@ export default function Home() {
           ${isLeftSidebarOpen ? 'w-[240px] border-r' : 'w-0 border-r-0'}`}
       >
         <div className="w-[240px] flex flex-col h-full shrink-0">
-          <SidebarHeader onToggle={() => setIsLeftSidebarOpen(!isLeftSidebarOpen)} />
+          <SidebarHeader 
+            onToggle={() => setIsLeftSidebarOpen(!isLeftSidebarOpen)} 
+            onEditClick={() => {
+              setActiveEventId(null);
+              setIsRightSidebarOpen(true);
+              setRightSidebarView("event");
+            }}
+          />
           <MiniCalendar baseDate={baseDate} setBaseDate={setBaseDate} />
           <SchedulingSection onSchedulingClick={() => setIsSchedulingOpen(!isSchedulingOpen)} />
           <CalendarAccounts />
@@ -37,7 +49,14 @@ export default function Home() {
         className={`absolute left-[240px] top-0 h-full z-20 shadow-[4px_0_24px_rgba(0,0,0,0.08)] bg-white transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] origin-left
           ${isSchedulingOpen ? 'translate-x-0 opacity-100 visible' : '-translate-x-[10%] opacity-0 invisible pointer-events-none'}`}
       >
-        <SchedulingPanel onClose={() => setIsSchedulingOpen(false)} />
+        <SchedulingPanel 
+          onClose={() => setIsSchedulingOpen(false)} 
+          onCreateRecurringLink={() => {
+            setIsSchedulingOpen(false);
+            setIsRightSidebarOpen(true);
+            setRightSidebarView("recurring");
+          }}
+        />
       </div>
       
       {/* Main Content Container */}
@@ -49,6 +68,14 @@ export default function Home() {
           onOpenRightSidebar={() => setIsRightSidebarOpen(true)} 
           isLeftSidebarOpen={isLeftSidebarOpen}
           onOpenLeftSidebar={() => setIsLeftSidebarOpen(true)}
+          isRecurringMode={rightSidebarView === "recurring"}
+          events={events}
+          setEvents={setEvents}
+          onEventClick={(event) => {
+            setActiveEventId(event.id);
+            setRightSidebarView("event");
+            setIsRightSidebarOpen(true);
+          }}
         />
       </div>
 
@@ -56,6 +83,24 @@ export default function Home() {
       <RightSidebar 
         isOpen={isRightSidebarOpen} 
         onClose={() => setIsRightSidebarOpen(false)} 
+        view={rightSidebarView}
+        onChangeView={setRightSidebarView}
+        onSaveEvent={(newEvent) => {
+          if (!activeEventId) {
+            setActiveEventId(newEvent.id);
+          }
+          setEvents((prev) => {
+            const index = prev.findIndex(e => e.id === newEvent.id);
+            if (index >= 0) {
+              const newEvents = [...prev];
+              newEvents[index] = newEvent;
+              return newEvents;
+            } else {
+              return [...prev, newEvent];
+            }
+          });
+        }}
+        activeEvent={activeEvent}
       />
     </div>
   );

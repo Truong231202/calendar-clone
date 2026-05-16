@@ -26,20 +26,30 @@ export function MainCalendar({
   isRightSidebarOpen = true, 
   onOpenRightSidebar, 
   isLeftSidebarOpen = true, 
-  onOpenLeftSidebar 
+  onOpenLeftSidebar,
+  isRecurringMode = false,
+  events = [],
+  setEvents,
+  onEventClick
 }: { 
   baseDate: Date, 
   setBaseDate: (date: Date) => void,
   isRightSidebarOpen?: boolean, 
   onOpenRightSidebar?: () => void, 
   isLeftSidebarOpen?: boolean, 
-  onOpenLeftSidebar?: () => void 
+  onOpenLeftSidebar?: () => void,
+  isRecurringMode?: boolean,
+  events?: any[],
+  setEvents?: (events: any[]) => void,
+  onEventClick?: (event: any) => void
 }) {
   const [isWeekDropdownOpen, setIsWeekDropdownOpen] = useState(false);
   const [isTimezonePickerOpen, setIsTimezonePickerOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     // Update the time every minute to keep the red line in sync
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(timer);
@@ -86,6 +96,20 @@ export function MainCalendar({
   };
 
   const hours = Array.from({ length: 24 }, (_, i) => i);
+
+  const parseTime = (timeStr: string) => {
+    if (!timeStr) return 0;
+    const parts = timeStr.split(" ");
+    if (parts.length < 2) return 0;
+    const time = parts[0];
+    const ampm = parts[1];
+    const timeParts = time.split(":");
+    let h = parseInt(timeParts[0]);
+    const m = timeParts[1] ? parseInt(timeParts[1]) : 0;
+    if (ampm === "PM" && h < 12) h += 12;
+    if (ampm === "AM" && h === 12) h = 0;
+    return h + m / 60;
+  };
 
   return (
     <div className="flex-1 h-full bg-white flex flex-col min-w-0 font-sans text-neutral-800">
@@ -312,7 +336,7 @@ export function MainCalendar({
                   >
                     <div className="h-full w-full flex items-end justify-center pb-1.5">
                       <div className="flex items-center cursor-pointer group">
-                        {day.isCurrent ? (
+                        {mounted && day.isCurrent ? (
                           <div className="flex items-center space-x-1 text-[12px] leading-none">
                             <span className="font-bold text-neutral-900">{day.name}</span>
                             <span className="bg-[#db4c3f] text-white font-bold px-1.5 py-0.5 rounded">{day.date}</span>
@@ -388,21 +412,68 @@ export function MainCalendar({
                   >
                     <div className="absolute inset-0 pointer-events-none">
                       <div className="relative h-full w-full">
+                        {/* Recurring Mode Indicator */}
+                        {isRecurringMode && (
+                          <div className="absolute inset-0 z-0 pointer-events-none">
+                            {(i === 0 || i === 6) ? (
+                              <div className="w-full h-full" style={{ backgroundImage: 'repeating-linear-gradient(-45deg, transparent, transparent 4px, #f0f0f0 4px, #f0f0f0 5px)' }}></div>
+                            ) : (
+                              <div className="w-full h-full flex flex-col">
+                                <div className="w-full h-[432px]" style={{ backgroundImage: 'repeating-linear-gradient(-45deg, transparent, transparent 4px, #f0f0f0 4px, #f0f0f0 5px)' }}></div>
+                                <div className="w-[calc(100%-2px)] ml-[1px] h-[384px] bg-white border border-dashed border-[#bfe0fa] z-10 relative"></div>
+                                <div className="w-full h-[336px]" style={{ backgroundImage: 'repeating-linear-gradient(-45deg, transparent, transparent 4px, #f0f0f0 4px, #f0f0f0 5px)' }}></div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         {/* Grid Lines */}
                         {hours.map(hour => (
                           <div
                             key={hour}
-                            className="absolute w-full border-b border-neutral-100"
+                            className="absolute w-full border-b border-neutral-100 z-0"
                             style={{ top: `calc(0px + 4px * ${hour * 12})` }}
                           ></div>
                         ))}
 
+                        {/* Events */}
+                        {events?.map(event => {
+                          if (event.isAllDay) return null;
+                          
+                          // Match date
+                          const eventDayMatch = event.date && event.date.includes(day.date.toString());
+                          // Quick match to make sure it only shows on the right day
+                          if (!eventDayMatch && day.isCurrent === false && event.date !== "today") return null;
+
+                          const startH = parseTime(event.startTime);
+                          const endH = parseTime(event.endTime);
+                          const top = startH * 48;
+                          const height = Math.max((endH - startH) * 48, 20); // min height 20px
+
+                          return (
+                            <div 
+                              key={event.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (onEventClick) onEventClick(event);
+                              }}
+                              className={`absolute left-0 right-2 bg-[#3cb1ff] rounded-[4px] px-1.5 py-0.5 text-white overflow-hidden pointer-events-auto cursor-pointer border border-[#1b9aea] z-20 hover:brightness-95 transition-all`}
+                              style={{ top: `${top}px`, height: `${height}px` }}
+                            >
+                              <div className="text-[12px] font-bold leading-tight truncate">{event.title}</div>
+                              <div className="text-[11px] opacity-90 leading-tight truncate">{event.startTime} - {event.endTime}</div>
+                            </div>
+                          );
+                        })}
+
                         {/* Current Time / Past Time Indicator */}
-                        <div className="absolute w-full">
-                          <div className="absolute w-full" style={{ top: day.isCurrent ? `${timeIndicatorTop}px` : '0px', display: day.isCurrent ? 'block' : 'none' }}>
-                            <div className="absolute w-full bg-neutral-100/40" style={{ opacity: 0.3, transform: 'translateY(-100%)', height: `${timeIndicatorTop}px` }}></div>
+                        {mounted && (
+                          <div className="absolute w-full z-10">
+                            <div className="absolute w-full" style={{ top: day.isCurrent ? `${timeIndicatorTop}px` : '0px', display: day.isCurrent ? 'block' : 'none' }}>
+                              <div className="absolute w-full bg-neutral-100/40" style={{ opacity: 0.3, transform: 'translateY(-100%)', height: `${timeIndicatorTop}px` }}></div>
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -410,26 +481,30 @@ export function MainCalendar({
               })}
 
               {/* Current Time Label (floating on time axis) */}
-              <div
-                className="absolute left-[-72px] w-[72px] flex justify-end pr-2 z-20 pointer-events-none"
-                style={{ top: `${timeIndicatorTop}px`, transform: 'translateY(-50%)' }}
-              >
-                <div className="text-[#db4c3f] text-[10px] font-bold bg-white px-1">
-                  {displayCurrentHour}:<span className="text-[10px]">{displayCurrentMinutes}</span><span className="text-[8px] ml-0.5 opacity-90">{currentAmpm}</span>
+              {mounted && (
+                <div
+                  className="absolute left-[-72px] w-[72px] flex justify-end pr-2 z-20 pointer-events-none"
+                  style={{ top: `${timeIndicatorTop}px`, transform: 'translateY(-50%)' }}
+                >
+                  <div className="text-[#db4c3f] text-[10px] font-bold bg-white px-1">
+                    {displayCurrentHour}:<span className="text-[10px]">{displayCurrentMinutes}</span><span className="text-[8px] ml-0.5 opacity-90">{currentAmpm}</span>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Global Red Line */}
-              <div
-                className="absolute left-0 right-0 border-t-[1.5px] border-[#db4c3f] z-10 pointer-events-none"
-                style={{ top: `${timeIndicatorTop}px` }}
-              >
-                {/* Red dot on current day */}
-                <div 
-                  className="absolute w-2 h-2 bg-[#db4c3f] rounded-full -translate-y-1/2 -translate-x-1/2"
-                  style={{ left: `calc((100% / 7) * ${days.findIndex(d => d.isCurrent)})` }}
-                ></div>
-              </div>
+              {mounted && (
+                <div
+                  className="absolute left-0 right-0 border-t-[1.5px] border-[#db4c3f] z-10 pointer-events-none"
+                  style={{ top: `${timeIndicatorTop}px` }}
+                >
+                  {/* Red dot on current day */}
+                  <div 
+                    className="absolute w-2 h-2 bg-[#db4c3f] rounded-full -translate-y-1/2 -translate-x-1/2"
+                    style={{ left: `calc((100% / 7) * ${days.findIndex(d => d.isCurrent)})` }}
+                  ></div>
+                </div>
+              )}
 
             </div>
           </div>

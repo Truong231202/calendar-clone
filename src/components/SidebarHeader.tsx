@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const SidebarHeader = ({ onToggle }: { onToggle?: () => void }) => {
+export const SidebarHeader = ({ onToggle, onEditClick }: { onToggle?: () => void; onEditClick?: () => void }) => {
   return (
     <div className="flex items-center justify-between px-2 pt-2  w-full">
       <button
@@ -26,6 +26,7 @@ export const SidebarHeader = ({ onToggle }: { onToggle?: () => void }) => {
         </button>
 
         <button
+          onClick={onEditClick}
           aria-label="Edit"
           type="button"
           className="flex items-center justify-center w-[30px] h-[30px] rounded hover:bg-neutral-200/60 text-neutral-500 hover:text-neutral-800 transition-colors"

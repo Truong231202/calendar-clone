@@ -2,9 +2,10 @@ import React from 'react';
 
 interface SchedulingPanelProps {
   onClose?: () => void;
+  onCreateRecurringLink?: () => void;
 }
 
-export const SchedulingPanel = ({ onClose }: SchedulingPanelProps) => {
+export const SchedulingPanel = ({ onClose, onCreateRecurringLink }: SchedulingPanelProps) => {
   return (
     <div className="w-[300px] h-full bg-white border-r border-neutral-200 flex flex-col shrink-0">
       {/* Header */}
@@ -47,6 +48,7 @@ export const SchedulingPanel = ({ onClose }: SchedulingPanelProps) => {
         <div className="flex flex-col gap-2">
           <button
             type="button"
+            onClick={onCreateRecurringLink}
             className="w-full h-8 flex items-center justify-center bg-[#3985D3] hover:bg-[#2b65ce] text-white rounded-[5px] transition-colors"
           >
             <div className="text-[13px] font-medium">Create recurring link</div>

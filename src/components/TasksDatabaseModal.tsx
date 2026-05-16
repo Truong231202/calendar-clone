@@ -11,6 +11,7 @@ export const TasksDatabaseModal: React.FC<TasksDatabaseModalProps> = ({ isOpen, 
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRender(true);
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
